@@ -1,0 +1,12 @@
+# Baseline: no mitigation, FairFace validation split
+seed: 0
+model: configs/models/clip_vitb32.yaml
+queries: configs/queries/neutral_concepts.yaml
+dataset:
+  name: fairface
+  split: val
+attributes: [gender, race, age]
+metrics:
+  k: [100, 1000]
+  desired_distribution: uniform   # uniform | gallery | custom
+output_dir: results/baseline_fairface

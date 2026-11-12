@@ -1,0 +1,5 @@
+# Attribute-neutral queries. Concepts/templates to be finalised in Phase 2.
+templates:
+  - "a photo of a {} person"
+  - "a picture of a {} person"
+concepts: []        # e.g. IAT-derived adjectives (Berg et al. 2022)

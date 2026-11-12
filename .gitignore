@@ -1,0 +1,29 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.ipynb_checkpoints/
+
+# Data and outputs (large / licensed, never commit)
+data/raw/*
+data/processed/*
+data/embeddings/*
+!data/**/.gitkeep
+results/*
+!results/.gitkeep
+!results/summary/
+
+# Model weights and caches
+*.pt
+*.pth
+*.ckpt
+*.safetensors
+*.npy
+*.npz
+
+# OS / editors
+.DS_Store
+.vscode/
+.idea/
