@@ -45,17 +45,22 @@ pytest
 ## Running the baseline
 
 ```bash
-python scripts/run_baseline.py --config configs/experiments/baseline_fairface.yaml
+python scripts/run_baseline.py --config configs/experiments/baseline_v1_berg.yaml   # Berg et al. protocol
+python scripts/run_baseline.py --config configs/experiments/baseline_v1.yaml        # 0.25 crop, full split
 ```
 
-Outputs go to `results/baseline_fairface/`: `per_query.csv`, `per_group.csv`, `summary.csv`.
-On Colab, use `notebooks/02_baseline_fairface.ipynb`.
+Outputs go to the config's `output_dir`: `per_query.csv`, `per_group.csv`, `summary.csv`,
+`chance.csv` (random-ranking chance level), `utility.csv` (Flickr30K Recall@K), `config_used.yaml`.
+
+Notebooks: `01` first look at CLIP, `02` exploration and validation against published numbers,
+`03` the final baseline v1 (significance, adult age bands, per-concept results, utility).
 
 ## Roadmap
 
 - [ ] Phase 0 - compare CLIP variants, set up repo
 - [x] Phase 1 - metrics module + unit tests
 - [x] Phase 2 - query sets (Chuang et al. 2023, Berg et al. 2022, occupations)
-- [ ] Phase 3 - baseline v1 on FairFace: gender, race, age (+ retrieval utility)
+- [x] Phase 3a - baseline pipeline validated against Berg et al. (2022)
+- [ ] Phase 3b - baseline v1: significance, adult age bands, per-concept results, Flickr30K utility (notebook 03)
 - [ ] Phase 4 - datasets for all five attributes
 - [ ] Phase 5 - mitigation methods
