@@ -79,3 +79,38 @@ def test_flickr_normalisation_both_layouts():
     d2 = from_hf_dataset(per_caption, "toy")
     assert len(d2) == 2 and d2.caption_to_image.tolist() == [0, 0, 1, 1]
     assert "image" in d2.images.column_names
+
+
+def test_flickr_raw_files_loader(tmp_path, monkeypatch):
+    """Script-based HF datasets: rebuild from the repo's CSV + image zip (no network)."""
+    pytest.importorskip("datasets")
+    import json
+    import zipfile
+
+    import huggingface_hub
+    import pandas as pd
+    from PIL import Image
+
+    from vlbias.data import flickr30k as fl
+
+    imgs = tmp_path / "imgs"
+    imgs.mkdir()
+    for n in ("a.jpg", "b.jpg", "c.jpg"):
+        Image.new("RGB", (4, 4)).save(imgs / n)
+    zpath = tmp_path / "flickr30k-images.zip"
+    with zipfile.ZipFile(zpath, "w") as z:
+        for n in ("a.jpg", "b.jpg", "c.jpg"):
+            z.write(imgs / n, f"flickr30k-images/{n}")
+    csv = tmp_path / "flickr_annotations_30k.csv"
+    pd.DataFrame({"raw": [json.dumps([f"{x}{i}" for i in range(5)]) for x in "abc"],
+                  "split": ["test", "test", "train"], "filename": ["a.jpg", "b.jpg", "c.jpg"]}).to_csv(csv, index=False)
+
+    files = {"flickr_annotations_30k.csv": csv, "flickr30k-images.zip": zpath, "flickr30k.py": None}
+    monkeypatch.setattr(huggingface_hub, "list_repo_files", lambda repo, repo_type=None: list(files))
+    monkeypatch.setattr(huggingface_hub, "hf_hub_download", lambda repo, f, repo_type=None: str(files[f]))
+
+    ds = fl._load_raw_files("fake/repo")
+    d = fl.from_hf_dataset(ds, "toy")
+    assert len(d) == 2 and len(d.captions) == 10            # train image filtered out
+    assert d.caption_to_image.tolist() == [0] * 5 + [1] * 5
+    assert d.images[0]["image"].size == (4, 4)

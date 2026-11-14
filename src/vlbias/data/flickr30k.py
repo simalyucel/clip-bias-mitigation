@@ -35,17 +35,82 @@ class RetrievalDataset:
         return len(self.images)
 
 
-def _load_any(hf_id: str):
-    from datasets import load_dataset
-
-    try:
-        ds = load_dataset(hf_id)
-    except Exception:
-        ds = load_dataset(hf_id, trust_remote_code=True)
+def _pick_split(ds):
     if hasattr(ds, "keys"):  # DatasetDict: prefer a test split, else the only split
-        split = "test" if "test" in ds else list(ds.keys())[0]
+        keys = list(ds.keys())
+        split = next((k for k in keys if k.lower() == "test"), keys[0])
         ds = ds[split]
     return ds
+
+
+def _load_parquet_branch(hf_id: str):
+    """Hugging Face's automatic Parquet conversion: works for script-based datasets too."""
+    from datasets import load_dataset
+
+    return _pick_split(load_dataset(hf_id, revision="refs/convert/parquet"))
+
+
+IMAGE_FILE_COLUMNS = ("filename", "file_name", "image_path", "image", "img")
+
+
+def _load_raw_files(hf_id: str):
+    """Build the dataset from the repo's raw files: a captions CSV + a zip of images.
+
+    Script-based datasets (no longer supported by ``datasets`` >= 4) keep their data as
+    plain files in the repo; the script only read them. We read them ourselves.
+    """
+    import os
+    import zipfile
+
+    import pandas as pd
+    from datasets import Dataset
+    from datasets import Image as HFImage
+    from huggingface_hub import hf_hub_download, list_repo_files
+
+    files = list_repo_files(hf_id, repo_type="dataset")
+    csvs = [f for f in files if f.lower().endswith(".csv")]
+    zips = [f for f in files if f.lower().endswith(".zip")]
+    if not csvs or not zips:
+        raise ValueError(f"expected a .csv and a .zip in the repo, found {files}")
+    csv = sorted(csvs, key=lambda f: ("test" not in f.lower(), len(f)))[0]
+    zname = sorted(zips, key=lambda f: ("image" not in f.lower(), len(f)))[0]
+
+    df = pd.read_csv(hf_hub_download(hf_id, csv, repo_type="dataset"))
+    zpath = hf_hub_download(hf_id, zname, repo_type="dataset")
+    target = zpath + "_extracted"
+    if not os.path.isdir(target):
+        with zipfile.ZipFile(zpath) as z:
+            z.extractall(target)
+    paths = {}
+    for dirpath, _, names in os.walk(target):
+        for n in names:
+            if n.lower().endswith((".jpg", ".jpeg", ".png")):
+                paths[n] = os.path.join(dirpath, n)
+
+    col = next((c for c in IMAGE_FILE_COLUMNS if c in df.columns), None)
+    if col is None:
+        raise ValueError(f"no image file column in CSV columns {list(df.columns)}")
+    names = df[col].astype(str).map(os.path.basename)
+    missing = (~names.isin(paths)).sum()
+    if missing:
+        raise ValueError(f"{missing} of {len(df)} images listed in {csv} not found in {zname}")
+    df = df.assign(image=names.map(paths))
+    return Dataset.from_pandas(df, preserve_index=False).cast_column("image", HFImage())
+
+
+def _load_any(hf_id: str):
+    """Try a normal load, then the Parquet conversion, then the raw files."""
+    from datasets import load_dataset
+
+    errors = []
+    for loader in (lambda: _pick_split(load_dataset(hf_id)),
+                   lambda: _load_parquet_branch(hf_id),
+                   lambda: _load_raw_files(hf_id)):
+        try:
+            return loader()
+        except Exception as e:
+            errors.append(f"{type(e).__name__}: {str(e)[:200]}")
+    raise RuntimeError(" | ".join(errors))
 
 
 def _as_list(value) -> list[str]:
