@@ -42,11 +42,20 @@ pip install -e .
 pytest
 ```
 
+## Running the baseline
+
+```bash
+python scripts/run_baseline.py --config configs/experiments/baseline_fairface.yaml
+```
+
+Outputs go to `results/baseline_fairface/`: `per_query.csv`, `per_group.csv`, `summary.csv`.
+On Colab, use `notebooks/02_baseline_fairface.ipynb`.
+
 ## Roadmap
 
 - [ ] Phase 0 - compare CLIP variants, set up repo
-- [ ] Phase 1 - metrics module + unit tests
-- [ ] Phase 2 - query sets
-- [ ] Phase 3 - baseline on FairFace (+ retrieval utility)
+- [x] Phase 1 - metrics module + unit tests
+- [x] Phase 2 - query sets (Chuang et al. 2023, Berg et al. 2022, occupations)
+- [ ] Phase 3 - baseline v1 on FairFace: gender, race, age (+ retrieval utility)
 - [ ] Phase 4 - datasets for all five attributes
 - [ ] Phase 5 - mitigation methods
