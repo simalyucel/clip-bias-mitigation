@@ -1,5 +1,0 @@
-# OpenAI CLIP ViT-B/32 - main baseline backbone
-name: clip_vitb32
-library: open_clip
-architecture: ViT-B-32
-pretrained: openai

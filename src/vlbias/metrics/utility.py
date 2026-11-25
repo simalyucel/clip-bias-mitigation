@@ -42,3 +42,16 @@ def retrieval_recall(text_emb: np.ndarray, image_emb: np.ndarray, caption_to_ima
         for k in ks:
             rows.append({"direction": direction, "k": k, "recall": 100.0 * float(np.mean(ranks < k))})
     return pd.DataFrame(rows)
+
+
+def recall_from_top_k(top: np.ndarray, caption_to_image: np.ndarray, ks: Sequence[int] = (1, 5, 10)) -> list[dict]:
+    """text -> image Recall@K (%) from an already ranked top-k list (one row of image ids per caption).
+
+    Used for re-ranking (post-processing) methods, whose order is not given by similarity scores.
+    ``top`` must have at least max(ks) columns.
+    """
+    top, caption_to_image = np.asarray(top), np.asarray(caption_to_image)
+    hit_rank = np.full(len(top), np.inf)
+    rows_, cols_ = np.nonzero(top == caption_to_image[:, None])
+    hit_rank[rows_] = cols_
+    return [{"direction": "text_to_image", "k": k, "recall": 100.0 * float(np.mean(hit_rank < k))} for k in ks]

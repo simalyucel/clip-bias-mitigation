@@ -73,6 +73,7 @@ def evaluate(
     custom_references: dict[str, Sequence[float]] | None = None,
     nulls: dict | None = None,
     alpha: float = 0.05,
+    rank_fn=top_k_indices,
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
     """Returns (per_query, per_group) DataFrames.
 
@@ -81,6 +82,8 @@ def evaluate(
                 (+ p-values and significance flags when ``nulls`` is given)
     per_group : one row per query x attribute x reference x k x group with skew
                 (+ chance range, p-value, significance when ``nulls`` is given)
+    rank_fn   : function(query_emb, gallery_emb, k) -> top-k indices. Default: cosine
+                similarity. A post-processing (re-ranking) method passes its own.
     """
     full_top = None
     q_rows, g_rows = [], []
@@ -89,10 +92,10 @@ def evaluate(
         valid = attr_labels >= 0
         if valid.all():
             if full_top is None:
-                full_top = top_k_indices(query_emb, gallery_emb, max(ks))
+                full_top = rank_fn(query_emb, gallery_emb, max(ks))
             top, lab = full_top, attr_labels
         else:  # rank only the images with a valid label for this attribute
-            top, lab = top_k_indices(query_emb, gallery_emb[valid], max(ks)), attr_labels[valid]
+            top, lab = rank_fn(query_emb, gallery_emb[valid], max(ks)), attr_labels[valid]
         refs = _references(lab, len(names), references, (custom_references or {}).get(attr))
         for qi, q in enumerate(queries):
             ranked = lab[top[qi]]

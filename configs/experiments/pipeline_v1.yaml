@@ -1,0 +1,48 @@
+# Common evaluation pipeline v1 (notebook 04): the SAME protocol for every mitigation method.
+# Identical to baseline_v1_berg.yaml (Berg et al. protocol, the validated baseline of notebook 03),
+# so running the pipeline with no mitigation must reproduce notebook 03's numbers exactly.
+seed: 0
+model: configs/models/clip_vitb32.yaml
+query_sets:
+  - configs/queries/chuang2023.yaml
+  - configs/queries/berg2022_test.yaml
+  - configs/queries/occupations.yaml
+dataset:                # evaluation gallery: the images that are searched
+  name: fairface
+  split: validation
+  padding: "1.25"
+  balance_gender: true
+  balance_seed: 1
+  max_images: null
+attributes: [gender, race, age_adult]
+metrics:
+  k: [100, 1000]
+  references: [uniform, gallery]   # Roberta: uniform first, gallery second; both are always reported
+  zero_floor: 0.5
+significance:
+  n_null: 1000
+  seed: 0
+  alpha: 0.05
+utility:
+  dataset: flickr30k
+  ks: [1, 5, 10]
+# Labelled images a method may LEARN from (e.g. Zhao et al., BendVLM, Kong's classifier).
+# A different split from the evaluation gallery, so no method is tested on its own training data.
+# Only loaded if a method asks for it.
+fit_data:
+  name: fairface
+  split: train
+  padding: "1.25"
+  balance_gender: false
+  max_images: 20000
+# Deliverable 2, Table 12 (preliminary targets; the primary metrics are still to be confirmed)
+targets:
+  bias_metric: max_skew        # mean MaxSkew over queries
+  reference: gallery
+  k: 1000
+  utility_metric: R@5          # Flickr30K text -> image Recall@5
+  min_bias_reduction: 0.05     # at least 5% less bias than the baseline
+  max_utility_drop: 0.05       # at most 5% lower utility than the baseline
+batch_size: 256
+cache_dir: data/embeddings
+output_dir: results/pipeline_v1   # one sub-folder per method: results/pipeline_v1/<method>/
