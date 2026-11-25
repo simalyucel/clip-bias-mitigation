@@ -1,0 +1,9 @@
+# Exact setup of Chuang et al. (2023), Table 11 / Table 5: Berg et al.'s 10 training
+# concepts, one template. Use this set to compare MaxSkew@1000 (uniform reference)
+# with their reported CLIP ViT-B/32 zero-shot numbers: gender .206, race .743, age .797.
+name: chuang2023
+templates:
+  - "A photo of a {} person"
+concepts:
+  positive: [good, smart, attractive, lawful, friendly]
+  negative: [evil, dumb, unattractive, criminal, unfriendly]
